@@ -4,9 +4,9 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
 const axios = require('axios');
-const express = require('express'); // Importe express pour créer un serveur HTTP
-const fs = require('fs'); // Pour lire et écrire dans un fichier JSON
-const path = require('path'); // Pour gérer les chemins de fichiers
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const CUSTOM_PROMPT = require('./prompt');
 
 const client = new Client({
@@ -51,11 +51,7 @@ if (fs.existsSync(MESSAGE_HISTORY_FILE)) {
 
 // Fonction pour sauvegarder l'historique des messages dans le fichier JSON
 function saveMessageHistory() {
-    if (Object.keys(messageHistory).length === 0) {
-        fs.writeFileSync(MESSAGE_HISTORY_FILE, '{}');
-    } else {
-        fs.writeFileSync(MESSAGE_HISTORY_FILE, JSON.stringify(messageHistory, null, 2));
-    }
+    fs.writeFileSync(MESSAGE_HISTORY_FILE, JSON.stringify(messageHistory, null, 2));
 }
 
 client.once('ready', () => {
@@ -124,15 +120,6 @@ async function processQueue() {
             channelHistory.shift();
         }
 
-        const lastMessage = channelHistory[channelHistory.length - 1];
-        const previousMessages = channelHistory.length > 1 ? channelHistory.slice(0, -1) : [{ username: "Système", message: "Début de la conversation." }];
-
-        if (!lastMessage || !lastMessage.message) {
-            console.error("Impossible d'envoyer une requête à l'IA : pas de dernier message.");
-            message.reply("Je ne peux pas répondre sans contexte, peux-tu reformuler ?");
-            continue;
-        }
-
         saveMessageHistory();
 
         if (message.mentions.has(client.user)) {
@@ -147,8 +134,7 @@ async function processQueue() {
                     console.log('Le message a été supprimé avant que le bot ne puisse répondre.');
                     continue;
                 }
-
-                const context = `Contexte facultatif (messages précédents) :\n${previousMessages.map(entry => `${entry.username} a dit : ${entry.message}`).join('\n')}\n\nDernier message (à prendre en compte) :\n${lastMessage.username} a dit : ${lastMessage.message}`;
+                const context = `Contexte facultatif (messages précédents) :\n${channelHistory.slice(0, -1).map(entry => `${entry.username} a dit : ${entry.message}`).join('\n')}\n\nDernier message (à prendre en compte) :\n${userName} a dit : ${userMessage}`;
 
                 console.log('Question de l\'utilisateur:', context);
 
@@ -167,16 +153,16 @@ async function processQueue() {
 
                 if (!response.data.choices || response.data.choices.length === 0) {
                     console.error('Réponse vide ou mal formattée de l\'API DeepSeek:', response.data);
-                    message.reply('Désolé, je n\'ai pas pu générer de réponse. Réessaie plus tard.');
+                    await message.reply('Désolé, je n\'ai pas pu générer de réponse. Réessaie plus tard.');
                     continue;
                 }
 
-                const botResponse = response.data.choices[0].message.content;
+                const botResponse = response.data.choices[0]?.message?.content || 'Désolé, je ne peux pas répondre pour l\'instant.';
                 console.log('Réponse de l\'API DeepSeek:', botResponse);
-                message.reply(botResponse);
+                await message.reply(botResponse);
             } catch (error) {
                 console.error('Erreur lors de la requête à l\'API DeepSeek:', error);
-                message.reply('Désolé, une erreur est survenue lors de la requête à l\'API.');
+                await message.reply('Désolé, une erreur est survenue lors de la requête à l\'API.');
             } finally {
                 clearInterval(typingInterval);
             }
@@ -188,7 +174,7 @@ async function processQueue() {
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
     messageQueue.push(message);
-    if (!isProcessingQueue) processQueue();
+    await processQueue();
 });
 
 client.login(process.env.DISCORD_TOKEN);
