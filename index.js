@@ -202,10 +202,12 @@ async function processQueue() {
         } finally {
             clearInterval(typingInterval);
             isProcessingQueue = false;
+            console.log('Fin du traitement du message:', message.id);
             processQueue();
         }
     } else {
         isProcessingQueue = false;
+        console.log('Le message ne mentionne pas le bot:', message.id);
         processQueue();
     }
 }
@@ -213,6 +215,7 @@ async function processQueue() {
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
+    console.log('Nouveau message reçu:', message.id);
     messageQueue.push(message);
     processQueue();
 });
