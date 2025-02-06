@@ -1,3 +1,10 @@
+// pm2 start discord-bot
+// pm2 stop discord-bot
+
+// pm2 restart discord-bot
+
+// pm2 status
+
 require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
 const axios = require('axios');
