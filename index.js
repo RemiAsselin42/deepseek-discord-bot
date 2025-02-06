@@ -51,7 +51,11 @@ if (fs.existsSync(MESSAGE_HISTORY_FILE)) {
 
 // Fonction pour sauvegarder l'historique des messages dans le fichier JSON
 function saveMessageHistory() {
-    fs.writeFileSync(MESSAGE_HISTORY_FILE, JSON.stringify(messageHistory, null, 2));
+    if (Object.keys(messageHistory).length === 0) {
+        fs.writeFileSync(MESSAGE_HISTORY_FILE, '{}');
+    } else {
+        fs.writeFileSync(MESSAGE_HISTORY_FILE, JSON.stringify(messageHistory, null, 2));
+    }
 }
 
 client.once('ready', () => {
