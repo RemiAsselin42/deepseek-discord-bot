@@ -1,9 +1,5 @@
-// pm2 start discord-bot
-// pm2 stop discord-bot
-
-// pm2 restart discord-bot --update-env
-
-// pm2 status
+// heroku logs --tail
+// heroku restart
 
 require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
@@ -60,9 +56,44 @@ function saveMessageHistory() {
 
 client.once('ready', () => {
     console.log(`Bot connecté en tant que ${client.user.tag}`);
+    const { REST, Routes } = require('discord.js');
+
+    const commands = [
+        {
+            name: 'resetHistory',
+            description: 'Supprime l\'historique des messages du salon actuel',
+        },
+    ];
+
+    const rest = new REST({ version: '1' }).setToken(process.env.DISCORD_TOKEN);
+
+    (async () => {
+        try {
+            console.log('⏳ Mise à jour des commandes slash...');
+            await rest.put(
+                Routes.applicationCommands(client.user.id),
+                { body: commands }
+            );
+            console.log('✅ Commandes enregistrées avec succès !');
+        } catch (error) {
+            console.error('❌ Erreur lors de l\'enregistrement des commandes:', error);
+        }
+    })();
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isCommand()) return;
+
+    if (interaction.commandName === 'resetHistory') {
+        if (messageHistory[interaction.channelId]) {
+            messageHistory[interaction.channelId] = [];
+            saveMessageHistory();
+            await interaction.reply('🗑️ Historique des messages réinitialisé avec succès !');
+        } else {
+            await interaction.reply('⚠️ Aucun historique à supprimer dans ce salon.');
+        }
+    }
+});
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
@@ -111,8 +142,8 @@ client.on('messageCreate', async (message) => {
         message: userMessage,
     });
 
-    // Limite l'historique à 50 messages par salon
-    if (channelHistory.length > 50) {
+    // Limite l'historique à 20 messages par salon
+    if (channelHistory.length > 20) {
         channelHistory.shift();
     }
 
@@ -158,7 +189,20 @@ client.on('messageCreate', async (message) => {
                 }
             );
 
-            const botResponse = response.data.choices[0].message.content;
+            if (!response.data.choices || response.data.choices.length === 0) {
+                console.error('DeepSeek API a renvoyé une réponse vide ou invalide:', response.data);
+                return message.reply('❌ Erreur : Impossible d\'obtenir une réponse de l\'IA.');
+            }
+
+            const botResponse = response.data.choices[0]?.message?.content;
+
+            // Vérifie si le message existe toujours avant de répondre
+            const fetchedMessage = await message.channel.messages.fetch(message.id);
+            if (!fetchedMessage) {
+                console.log('Le message a été supprimé avant que le bot ne puisse répondre.');
+                return;
+            }
+
             console.log('Question de l\'utilisateur:', context);
             console.log('Réponse de l\'API DeepSeek:', botResponse);
             message.reply(botResponse);
