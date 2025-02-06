@@ -169,7 +169,8 @@ async function processQueue() {
 
             if (!response.data.choices || response.data.choices.length === 0) {
                 console.error('DeepSeek API a renvoyé une réponse vide ou invalide:', response.data);
-                return message.reply('❌ Erreur : Impossible d\'obtenir une réponse de l\'IA.');
+                message.reply('❌ Erreur : Impossible d\'obtenir une réponse de l\'IA.');
+                return;
             }
 
             const botResponse = response.data.choices[0]?.message?.content;
@@ -189,11 +190,13 @@ async function processQueue() {
             message.reply('Désolé, une erreur est survenue lors de la requête à l\'API.');
         } finally {
             clearInterval(typingInterval);
+            isProcessingQueue = false;
+            processQueue();
         }
+    } else {
+        isProcessingQueue = false;
+        processQueue();
     }
-
-    isProcessingQueue = false;
-    processQueue();
 }
 
 client.on('messageCreate', async (message) => {
