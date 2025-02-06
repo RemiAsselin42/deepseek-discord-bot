@@ -100,6 +100,7 @@ client.on('interactionCreate', async (interaction) => {
 
 const messageQueue = [];
 let isProcessingQueue = false;
+let currentMessageId = null;
 
 async function processQueue() {
     if (isProcessingQueue) return;
@@ -107,6 +108,7 @@ async function processQueue() {
 
     while (messageQueue.length > 0) {
         const message = messageQueue.shift();
+        currentMessageId = message.id;
         const userMessage = message.content;
         const userName = message.author.username;
 
@@ -183,6 +185,7 @@ async function processQueue() {
         }
     }
     isProcessingQueue = false;
+    currentMessageId = null;
 }
 
 client.on('messageCreate', async (message) => {
@@ -190,6 +193,39 @@ client.on('messageCreate', async (message) => {
     console.log(`Message reçu de ${message.author.username}: ${message.content}`);
     messageQueue.push(message);
     await processQueue();
+});
+
+client.on('messageUpdate', (oldMessage, newMessage) => {
+    // Si le message est déjà dans la file, on le met à jour pour la prochaine requête
+    const queueIndex = messageQueue.findIndex(msg => msg.id === oldMessage.id);
+    if (queueIndex !== -1) {
+        messageQueue[queueIndex] = newMessage;
+    }
+    // Si on traite le message en cours et qu'il change, on arrête et on relance avec la nouvelle version
+    if (isProcessingQueue && oldMessage.id === currentMessageId) {
+        console.log('Le message en cours de traitement a été mis à jour. Arrêt de la requête.');
+        clearInterval(typingInterval);
+        // ...arrêter proprement la requête en cours...
+        isProcessingQueue = false;
+        // On refile le message à mettre à jour
+        messageQueue.unshift(newMessage);
+        processQueue();
+    }
+});
+
+client.on('messageDelete', (deletedMessage) => {
+    // Si le message est dans la file, on le retire
+    const queueIndex = messageQueue.findIndex(msg => msg.id === deletedMessage.id);
+    if (queueIndex !== -1) {
+        messageQueue.splice(queueIndex, 1);
+    }
+    // Si on traite ce message en cours, on arrête
+    if (isProcessingQueue && deletedMessage.id === currentMessageId) {
+        console.log('Le message en cours de traitement a été supprimé. Annulation.');
+        clearInterval(typingInterval);
+        // ...arrêter proprement la requête en cours...
+        isProcessingQueue = false;
+    }
 });
 
 client.on('error', (error) => {
