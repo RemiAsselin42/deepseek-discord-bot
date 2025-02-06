@@ -84,7 +84,8 @@ client.once('ready', () => {
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isCommand()) return;
 
-    if (interaction.commandName === 'resetHistory') {
+    if (interaction.commandName === 'reset-history') {
+        console.log('Commande /reset-history reçue');
         if (messageHistory[interaction.channelId]) {
             messageHistory[interaction.channelId] = [];
             saveMessageHistory();
