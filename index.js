@@ -1,7 +1,7 @@
 // pm2 start discord-bot
 // pm2 stop discord-bot
 
-// pm2 restart discord-bot
+// pm2 restart discord-bot --update-env
 
 // pm2 status
 
@@ -31,7 +31,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Route pour "ping" le bot
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
     res.send('Bot is alive!');
 });
 
@@ -62,11 +62,42 @@ client.once('ready', () => {
     console.log(`Bot connecté en tant que ${client.user.tag}`);
 });
 
+client.login(process.env.DISCORD_TOKEN);
+
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
     const userMessage = message.content;
     const userName = message.author.username;
+
+    // Commande pour supprimer l'historique des messages
+    if (userMessage.startsWith('/deleteHistory')) {
+        const args = userMessage.split(' ');
+        const numToDelete = parseInt(args[1], 10);
+
+        if (args.length === 1) {
+            // Supprime tout l'historique si aucun nombre n'est indiqué
+            if (messageHistory[message.channel.id]) {
+                messageHistory[message.channel.id] = [];
+                saveMessageHistory();
+                message.reply('Tout l\'historique des messages a été supprimé.');
+            } else {
+                message.reply('Il n\'y a pas d\'historique de messages à supprimer dans ce salon.');
+            }
+        } else if (!isNaN(numToDelete) && numToDelete > 0) {
+            if (messageHistory[message.channel.id]) {
+                const channelHistory = messageHistory[message.channel.id];
+                channelHistory.splice(-numToDelete, numToDelete);
+                saveMessageHistory();
+                message.reply(`Les ${numToDelete} derniers messages de l'historique ont été supprimés.`);
+            } else {
+                message.reply('Il n\'y a pas d\'historique de messages à supprimer dans ce salon.');
+            }
+        } else {
+            message.reply('Veuillez fournir un nombre valide de messages à supprimer.');
+        }
+        return;
+    }
 
     // Initialise l'historique du salon s'il n'existe pas
     if (!messageHistory[message.channel.id]) {

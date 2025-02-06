@@ -10,7 +10,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "stop": "pm2 stop discord-bot",
+    "restart": "pm2 restart discord-bot --update-env",
+    "status": "pm2 status"
   },
   "keywords": [],
   "author": "",
