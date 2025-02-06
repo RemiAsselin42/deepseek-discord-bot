@@ -1,3 +1,4 @@
+// git push heroku main
 // heroku logs --tail
 // heroku restart
 
@@ -128,53 +129,53 @@ async function processQueue() {
                 message.channel.sendTyping();
             }, 9000);
 
-            try {
-                const fetchedMessage = await message.channel.messages.fetch(message.id);
-                if (!fetchedMessage) {
-                    console.log('Le message a été supprimé avant que le bot ne puisse répondre.');
-                    continue;
+            let success = false;
+            while (!success) {
+                try {
+                    const fetchedMessage = await message.channel.messages.fetch(message.id);
+                    if (!fetchedMessage) {
+                        console.log('Le message a été supprimé avant que le bot ne puisse répondre.');
+                        break;
+                    }
+                    const context = `Contexte facultatif (messages précédents) :\n${channelHistory.slice(0, -1).map(entry => `${entry.username} a dit : ${entry.message}`).join('\n')}\n\nDernier message (à prendre en compte) :\n${userName} a dit : ${userMessage}`;
+
+                    console.log('Question de l\'utilisateur:', context);
+
+                    const response = await axios.post(DEEPSEEK_API_URL, {
+                        model: 'deepseek-chat',
+                        messages: [
+                            { role: 'system', content: CUSTOM_PROMPT },
+                            { role: 'user', content: context },
+                        ],
+                    }, {
+                        headers: {
+                            'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+                            'Content-Type': 'application/json',
+                        },
+                        timeout: 60000, // Timeout de 60 secondes
+                    });
+
+                    if (!response.data.choices || response.data.choices.length === 0) {
+                        console.error('Réponse vide ou mal formattée de l\'API DeepSeek:', response.data);
+                        await message.reply('Désolé, je n\'ai pas pu générer de réponse. Réessaie plus tard.');
+                        break;
+                    }
+
+                    const botResponse = response.data.choices[0]?.message?.content || 'Désolé, je ne peux pas répondre pour l\'instant.';
+                    console.log('Réponse de l\'API DeepSeek:', botResponse);
+                    await message.reply(botResponse);
+                    success = true;
+                } catch (error) {
+                    if (error.code === 'ECONNABORTED') {
+                        console.error('La requête a expiré:', error);
+                    } else if (error.response) {
+                        console.error('Erreur lors de la requête à l\'API DeepSeek:', error.response.data);
+                    } else {
+                        console.error('Erreur lors de la requête à l\'API DeepSeek:', error);
+                    }
                 }
-                const context = `Contexte facultatif (messages précédents) :\n${channelHistory.slice(0, -1).map(entry => `${entry.username} a dit : ${entry.message}`).join('\n')}\n\nDernier message (à prendre en compte) :\n${userName} a dit : ${userMessage}`;
-
-                console.log('Question de l\'utilisateur:', context);
-
-                const response = await axios.post(DEEPSEEK_API_URL, {
-                    model: 'deepseek-chat',
-                    messages: [
-                        { role: 'system', content: CUSTOM_PROMPT },
-                        { role: 'user', content: context },
-                    ],
-                }, {
-                    headers: {
-                        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-                        'Content-Type': 'application/json',
-                    },
-                    timeout: 60000, // Timeout de 60 secondes
-                });
-
-                if (!response.data.choices || response.data.choices.length === 0) {
-                    console.error('Réponse vide ou mal formattée de l\'API DeepSeek:', response.data);
-                    await message.reply('Désolé, je n\'ai pas pu générer de réponse. Réessaie plus tard.');
-                    continue;
-                }
-
-                const botResponse = response.data.choices[0]?.message?.content || 'Désolé, je ne peux pas répondre pour l\'instant.';
-                console.log('Réponse de l\'API DeepSeek:', botResponse);
-                await message.reply(botResponse);
-            } catch (error) {
-                if (error.code === 'ECONNABORTED') {
-                    console.error('La requête a expiré:', error);
-                    await message.reply('Désolé, la requête a pris trop de temps. Voici l\'erreur : ' + error.message);
-                } else if (error.response) {
-                    console.error('Erreur lors de la requête à l\'API DeepSeek:', error.response.data);
-                    await message.reply('Désolé, une erreur est survenue lors de la requête à l\'API. Voici l\'erreur : ' + error.response.data.message);
-                } else {
-                    console.error('Erreur lors de la requête à l\'API DeepSeek:', error);
-                    await message.reply('Désolé, une erreur est survenue lors de la requête à l\'API. Voici l\'erreur : ' + error.message);
-                }
-            } finally {
-                clearInterval(typingInterval);
             }
+            clearInterval(typingInterval);
         }
     }
     isProcessingQueue = false;
