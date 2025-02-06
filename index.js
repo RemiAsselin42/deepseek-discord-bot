@@ -169,6 +169,11 @@ async function processQueue() {
                 console.log('Réponse de l\'API DeepSeek:', botResponse);
                 await message.reply(botResponse);
             } catch (error) {
+                if (error.code === 'ECONNRESET') {
+                    console.error('Connexion interrompue par le serveur.');
+                    await message.reply('Impossible de se connecter à DeepSeek, réessaie plus tard.');
+                    break;
+                }
                 console.error('Erreur lors de la requête à l\'API DeepSeek:', error);
                 await message.reply('Erreur au démarrage de la requête, réessaie plus tard.');
                 break;
