@@ -124,14 +124,14 @@ async function processQueue() {
         saveMessageHistory();
 
         if (message.mentions.has(client.user)) {
-            message.channel.sendTyping();
-            const typingInterval = setInterval(() => {
-                message.channel.sendTyping();
-            }, 9000);
+            // message.channel.sendTyping();
+            // const typingInterval = setInterval(() => {
+            //     message.channel.sendTyping();
+            // }, 9000);
 
             let success = false;
             let retryCount = 0;
-            const maxRetries = 3;
+            const maxRetries = 5;
 
             while (!success && retryCount < maxRetries) {
                 try {
@@ -150,12 +150,13 @@ async function processQueue() {
                             { role: 'system', content: CUSTOM_PROMPT },
                             { role: 'user', content: context },
                         ],
+                        stream: true
                     }, {
                         headers: {
                             'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
                             'Content-Type': 'application/json',
                         },
-                        timeout: 60000, // Timeout de 60 secondes
+                        timeout: 40000, // Timeout de 40 secondes
                     });
 
                     if (!response.data.choices || response.data.choices.length === 0) {
@@ -183,7 +184,7 @@ async function processQueue() {
                     }
                 }
             }
-            clearInterval(typingInterval);
+            // clearInterval(typingInterval);
         }
     }
     isProcessingQueue = false;
