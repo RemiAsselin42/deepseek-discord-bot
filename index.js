@@ -101,6 +101,7 @@ client.on('interactionCreate', async (interaction) => {
 const messageQueue = [];
 let isProcessingQueue = false;
 let currentMessageId = null;
+let typingInterval = null;
 
 async function processQueue() {
     if (isProcessingQueue) return;
@@ -127,7 +128,7 @@ async function processQueue() {
 
         if (message.mentions.has(client.user)) {
             message.channel.sendTyping();
-            const typingInterval = setInterval(() => {
+            typingInterval = setInterval(() => {
                 message.channel.sendTyping();
             }, 9000);
 
