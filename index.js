@@ -187,8 +187,13 @@ async function processQueue() {
             console.log('Réponse de l\'API DeepSeek:', botResponse);
             message.reply(botResponse);
         } catch (error) {
-            console.error('Erreur lors de la requête à l\'API DeepSeek:', error);
-            message.reply('Désolé, une erreur est survenue lors de la requête à l\'API.');
+            if (error.code === 'ECONNRESET') {
+                console.error('Erreur de connexion réinitialisée:', error);
+                message.reply('Désolé, une erreur de connexion est survenue. Veuillez réessayer.');
+            } else {
+                console.error('Erreur lors de la requête à l\'API DeepSeek:', error);
+                message.reply('Désolé, une erreur est survenue lors de la requête à l\'API.');
+            }
         } finally {
             clearInterval(typingInterval);
             isProcessingQueue = false;
