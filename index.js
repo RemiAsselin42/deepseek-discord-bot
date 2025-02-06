@@ -171,8 +171,8 @@ async function processQueue() {
                     success = true;
                 } catch (error) {
                     retryCount++;
-                    if (error.code === 'ECONNABORTED') {
-                        console.error('La requête a expiré:', error);
+                    if (error.code === 'ECONNABORTED' || error.code === 'ECONNRESET') {
+                        console.error('La requête a expiré ou la connexion a été réinitialisée:', error);
                     } else if (error.response) {
                         console.error('Erreur lors de la requête à l\'API DeepSeek:', error.response.data);
                     } else {
