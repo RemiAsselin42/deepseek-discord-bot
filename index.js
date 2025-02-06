@@ -171,6 +171,7 @@ async function processQueue() {
             } catch (error) {
                 if (error.code === 'ECONNRESET') {
                     console.error('Connexion interrompue par le serveur.');
+                    clearInterval(typingInterval);
                     await message.reply('Impossible de se connecter à DeepSeek, réessaie plus tard.');
                     break;
                 }
