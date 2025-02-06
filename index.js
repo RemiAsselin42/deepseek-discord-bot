@@ -60,8 +60,8 @@ client.once('ready', () => {
 
     const commands = [
         {
-            name: 'resetHistory',
-            description: 'Supprime l\'historique des messages du salon actuel',
+            name: 'reset-history',
+            description: "Supprime l'historique des messages du salon actuel",
         },
     ];
 
