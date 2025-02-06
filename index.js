@@ -130,7 +130,10 @@ async function processQueue() {
             }, 9000);
 
             let success = false;
-            while (!success) {
+            let retryCount = 0;
+            const maxRetries = 3;
+
+            while (!success && retryCount < maxRetries) {
                 try {
                     const fetchedMessage = await message.channel.messages.fetch(message.id);
                     if (!fetchedMessage) {
@@ -166,12 +169,17 @@ async function processQueue() {
                     await message.reply(botResponse);
                     success = true;
                 } catch (error) {
+                    retryCount++;
                     if (error.code === 'ECONNABORTED') {
                         console.error('La requête a expiré:', error);
                     } else if (error.response) {
                         console.error('Erreur lors de la requête à l\'API DeepSeek:', error.response.data);
                     } else {
                         console.error('Erreur lors de la requête à l\'API DeepSeek:', error);
+                    }
+                    if (retryCount < maxRetries) {
+                        console.log(`Nouvelle tentative (${retryCount}/${maxRetries})...`);
+                        await new Promise(resolve => setTimeout(resolve, 500));
                     }
                 }
             }
