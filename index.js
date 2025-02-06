@@ -120,33 +120,46 @@ async function processQueue() {
 
     // Ajoute le message à l'historique du salon
     const channelHistory = messageHistory[message.channel.id];
+
     channelHistory.push({
         username: userName,
         message: userMessage,
     });
 
-    // Limite l'historique à 20 messages par salon
+    // Limite l'historique à 20 messages
     if (channelHistory.length > 20) {
         channelHistory.shift();
     }
 
+    // Récupère le dernier message
+    const lastMessage = channelHistory[channelHistory.length - 1];
+    const previousMessages = channelHistory.length > 1 ? channelHistory.slice(0, -1) : [{ username: "Système", message: "Début de la conversation." }];
+
+    if (!lastMessage || !lastMessage.message) {
+        console.error("Impossible d'envoyer une requête à l'IA : pas de dernier message.");
+        message.reply("Je ne peux pas répondre sans contexte, peux-tu reformuler ?");
+        isProcessingQueue = false;
+        processQueue();
+        return;
+    }
+
     saveMessageHistory();
 
-    // Vérifie si le bot est mentionné dans le message
     if (message.mentions.has(client.user)) {
         message.channel.sendTyping();
-
-        // Démarre un intervalle pour maintenir l'indicateur actif
         const typingInterval = setInterval(() => {
             message.channel.sendTyping();
         }, 9000);
 
-        try {
-            // Construit le contexte
-            const lastMessage = channelHistory[channelHistory.length - 1];
-            const previousMessages = channelHistory.slice(0, -1);
+        console.log("Historique actuel :", JSON.stringify(channelHistory, null, 2));
 
-            // Formatte le contexte pour l'IA
+        try {
+            const fetchedMessage = await message.channel.messages.fetch(message.id);
+            if (!fetchedMessage) {
+                console.log('Le message a été supprimé avant que le bot ne puisse répondre.');
+                return;
+            }
+
             const context = `
                 Contexte facultatif (messages précédents) :
                 ${previousMessages.map(entry => `${entry.username} a dit : ${entry.message}`).join('\n')}
@@ -155,7 +168,7 @@ async function processQueue() {
                 ${lastMessage.username} a dit : ${lastMessage.message}
             `;
 
-            console.log('Contexte envoyé à l\'API:', context);
+            console.log('Question de l\'utilisateur:', context);
 
             const response = await axios.post(DEEPSEEK_API_URL, {
                 model: 'deepseek-chat',
@@ -163,32 +176,14 @@ async function processQueue() {
                     { role: 'system', content: CUSTOM_PROMPT },
                     { role: 'user', content: context },
                 ],
-            },
-
-                {
-                    headers: {
-                        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-                        'Content-Type': 'application/json',
-                    },
-                }
-            );
-
-            if (!response.data.choices || response.data.choices.length === 0) {
-                console.error('DeepSeek API a renvoyé une réponse vide ou invalide:', response.data);
-                message.reply('❌ Erreur : Impossible d\'obtenir une réponse de l\'IA.');
-                return;
-            }
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+            });
 
             const botResponse = response.data.choices[0]?.message?.content;
-
-            // Vérifie si le message existe toujours avant de répondre
-            const fetchedMessage = await message.channel.messages.fetch(message.id);
-            if (!fetchedMessage) {
-                console.log('Le message a été supprimé avant que le bot ne puisse répondre.');
-                return;
-            }
-
-            console.log('Question de l\'utilisateur:', context);
             console.log('Réponse de l\'API DeepSeek:', botResponse);
             message.reply(botResponse);
         } catch (error) {
@@ -202,20 +197,13 @@ async function processQueue() {
         } finally {
             clearInterval(typingInterval);
             isProcessingQueue = false;
-            console.log('Fin du traitement du message:', message.id);
             processQueue();
         }
-    } else {
-        isProcessingQueue = false;
-        console.log('Le message ne mentionne pas le bot:', message.id);
-        processQueue();
     }
 }
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
-
-    console.log('Nouveau message reçu:', message.id);
     messageQueue.push(message);
     processQueue();
 });
