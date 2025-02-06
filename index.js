@@ -1,5 +1,10 @@
+// git add .
+// git commit -m "Update index.js"
+// git push origin main
 // git push heroku main
+
 // heroku logs --tail
+
 // heroku restart
 
 require('dotenv').config();
@@ -182,7 +187,6 @@ async function processQueue() {
                     break;
                 }
                 console.error('Erreur lors de la requête à l\'API DeepSeek:', error);
-                await message.reply('Erreur au démarrage de la requête, réessaie plus tard.');
                 break;
             }
             clearInterval(typingInterval);
