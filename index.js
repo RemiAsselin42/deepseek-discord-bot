@@ -164,13 +164,13 @@ async function processQueue() {
             } catch (error) {
                 if (error.code === 'ECONNABORTED') {
                     console.error('La requête a expiré:', error);
-                    await message.reply('Désolé, la requête a pris trop de temps. Veuillez réessayer.');
+                    await message.reply('Désolé, la requête a pris trop de temps. Voici l\'erreur : ' + error.message);
                 } else if (error.response) {
                     console.error('Erreur lors de la requête à l\'API DeepSeek:', error.response.data);
-                    await message.reply('Désolé, une erreur est survenue lors de la requête à l\'API.');
+                    await message.reply('Désolé, une erreur est survenue lors de la requête à l\'API. Voici l\'erreur : ' + error.response.data.message);
                 } else {
                     console.error('Erreur lors de la requête à l\'API DeepSeek:', error);
-                    await message.reply('Désolé, une erreur est survenue lors de la requête à l\'API.');
+                    await message.reply('Désolé, une erreur est survenue lors de la requête à l\'API. Voici l\'erreur : ' + error.message);
                 }
             } finally {
                 clearInterval(typingInterval);
@@ -182,6 +182,7 @@ async function processQueue() {
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
+    console.log(`Message reçu de ${message.author.username}: ${message.content}`);
     messageQueue.push(message);
     await processQueue();
 });
