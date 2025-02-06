@@ -60,6 +60,7 @@ function saveMessageHistory() {
 
 client.once('ready', () => {
     console.log(`Bot connecté en tant que ${client.user.tag}`);
+    saveMessageHistory();
     const { REST, Routes } = require('discord.js');
 
     const commands = [
