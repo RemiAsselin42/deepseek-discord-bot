@@ -124,10 +124,10 @@ async function processQueue() {
         saveMessageHistory();
 
         if (message.mentions.has(client.user)) {
-            // message.channel.sendTyping();
-            // const typingInterval = setInterval(() => {
-            //     message.channel.sendTyping();
-            // }, 9000);
+            message.channel.sendTyping();
+            const typingInterval = setInterval(() => {
+                message.channel.sendTyping();
+            }, 9000);
 
             let success = false;
             let retryCount = 0;
@@ -150,7 +150,6 @@ async function processQueue() {
                             { role: 'system', content: CUSTOM_PROMPT },
                             { role: 'user', content: context },
                         ],
-                        stream: true
                     }, {
                         headers: {
                             'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
@@ -158,6 +157,12 @@ async function processQueue() {
                         },
                         timeout: 40000, // Timeout de 40 secondes
                     });
+
+                    if (response.status < 200 || response.status >= 300) {
+                        console.error(`DeepSeek a peut-être planté: statut de la réponse = ${response.status}`);
+                        await message.reply('Désolé, le service semble indisponible pour le moment. Réessaie plus tard.');
+                        break;
+                    }
 
                     if (!response.data.choices || response.data.choices.length === 0) {
                         console.error('Réponse vide ou mal formattée de l\'API DeepSeek:', response.data);
@@ -184,7 +189,7 @@ async function processQueue() {
                     }
                 }
             }
-            // clearInterval(typingInterval);
+            clearInterval(typingInterval);
         }
     }
     isProcessingQueue = false;
