@@ -197,4 +197,8 @@ client.on('messageCreate', async (message) => {
     await processQueue();
 });
 
+client.on('error', (error) => {
+    console.error('Erreur de connexion:', error);
+});
+
 client.login(process.env.DISCORD_TOKEN);
