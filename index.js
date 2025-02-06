@@ -172,14 +172,18 @@ client.on('messageCreate', async (message) => {
                 ${lastMessage.username} a dit : ${lastMessage.message}
             `;
 
-            const response = await axios.post(
-                DEEPSEEK_API_URL,
-                {
-                    model: 'deepseek-chat',
-                    messages: [
-                        { role: 'system', content: CUSTOM_PROMPT },
-                        { role: 'user', content: context },
-                    ],
+            console.log('Contexte envoyé à l\'API:', context);
+
+            const response = await axios.post(DEEPSEEK_API_URL, {
+                model: 'deepseek-chat',
+                messages: [
+                    { role: 'system', content: CUSTOM_PROMPT },
+                    { role: 'user', content: context },
+                ],
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+                    'Content-Type': 'application/json',
                 },
                 {
                     headers: {
@@ -206,10 +210,9 @@ client.on('messageCreate', async (message) => {
             console.log('Question de l\'utilisateur:', context);
             console.log('Réponse de l\'API DeepSeek:', botResponse);
             message.reply(botResponse);
-
         } catch (error) {
-            console.error('Erreur lors de l\'appel à l\'API DeepSeek:', error);
-            message.reply('Désolé, une erreur s\'est produite, help @rem_x_ !');
+            console.error('Erreur lors de la requête à l\'API DeepSeek:', error);
+            message.reply('Désolé, une erreur est survenue lors de la requête à l\'API.');
         } finally {
             clearInterval(typingInterval);
         }
