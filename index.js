@@ -199,11 +199,17 @@ async function processQueue() {
             isProcessingQueue = false;
             processQueue();
         }
+
+    } else {
+        isProcessingQueue = false;
+        console.log('Le message ne mentionne pas le bot:', message.id);
+        processQueue();
     }
 }
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
+    console.log('Nouveau message reçu:', message.id);
     messageQueue.push(message);
     processQueue();
 });
