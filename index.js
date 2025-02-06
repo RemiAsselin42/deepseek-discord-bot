@@ -180,11 +180,8 @@ client.on('messageCreate', async (message) => {
                     { role: 'system', content: CUSTOM_PROMPT },
                     { role: 'user', content: context },
                 ],
-            }, {
-                headers: {
-                    'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
-                    'Content-Type': 'application/json',
-                },
+            },
+
                 {
                     headers: {
                         'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
