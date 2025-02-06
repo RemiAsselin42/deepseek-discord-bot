@@ -102,6 +102,7 @@ const messageQueue = [];
 let isProcessingQueue = false;
 let currentMessageId = null;
 let typingInterval = null;
+let currentController = null;
 
 async function processQueue() {
     if (isProcessingQueue) return;
@@ -128,6 +129,7 @@ async function processQueue() {
 
         if (message.mentions.has(client.user)) {
             message.channel.sendTyping();
+            currentController = new AbortController();
             typingInterval = setInterval(() => {
                 message.channel.sendTyping();
             }, 9000);
@@ -149,11 +151,12 @@ async function processQueue() {
                         { role: 'user', content: context },
                     ],
                 }, {
+                    signal: currentController.signal,
                     headers: {
                         'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
                         'Content-Type': 'application/json',
                     },
-                    timeout: 40000, // Timeout de 40 secondes
+                    timeout: 30000, // Timeout de 40 secondes
                 });
 
                 if (response.status < 200 || response.status >= 300) {
@@ -204,7 +207,8 @@ client.on('messageUpdate', (oldMessage, newMessage) => {
     }
     // Si on traite le message en cours et qu'il change, on arrête et on relance avec la nouvelle version
     if (isProcessingQueue && oldMessage.id === currentMessageId) {
-        console.log('Le message en cours de traitement a été mis à jour. Arrêt de la requête.');
+        console.log('Le message en cours de traitement a été mis à jour. Annulation de la requête.');
+        currentController.abort();
         clearInterval(typingInterval);
         // ...arrêter proprement la requête en cours...
         isProcessingQueue = false;
@@ -223,6 +227,7 @@ client.on('messageDelete', (deletedMessage) => {
     // Si on traite ce message en cours, on arrête
     if (isProcessingQueue && deletedMessage.id === currentMessageId) {
         console.log('Le message en cours de traitement a été supprimé. Annulation.');
+        currentController.abort();
         clearInterval(typingInterval);
         // ...arrêter proprement la requête en cours...
         isProcessingQueue = false;
