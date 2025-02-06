@@ -149,6 +149,7 @@ async function processQueue() {
                         'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
                         'Content-Type': 'application/json',
                     },
+                    timeout: 20000, // Timeout de 20 secondes
                 });
 
                 if (!response.data.choices || response.data.choices.length === 0) {
@@ -161,8 +162,16 @@ async function processQueue() {
                 console.log('Réponse de l\'API DeepSeek:', botResponse);
                 await message.reply(botResponse);
             } catch (error) {
-                console.error('Erreur lors de la requête à l\'API DeepSeek:', error);
-                await message.reply('Désolé, une erreur est survenue lors de la requête à l\'API.');
+                if (error.code === 'ECONNABORTED') {
+                    console.error('La requête a expiré:', error);
+                    await message.reply('Désolé, la requête a pris trop de temps. Veuillez réessayer.');
+                } else if (error.response) {
+                    console.error('Erreur lors de la requête à l\'API DeepSeek:', error.response.data);
+                    await message.reply('Désolé, une erreur est survenue lors de la requête à l\'API.');
+                } else {
+                    console.error('Erreur lors de la requête à l\'API DeepSeek:', error);
+                    await message.reply('Désolé, une erreur est survenue lors de la requête à l\'API.');
+                }
             } finally {
                 clearInterval(typingInterval);
             }
