@@ -109,7 +109,7 @@ let currentMessageId = null;
 let typingInterval = null;
 let currentController = null;
 
-const TARGET_CHANNEL_ID = '1336679504273211504'; // Remplacez par l’ID de votre salon
+const TARGET_CHANNEL_ID = '1336679504273211504';
 
 async function processQueue() {
     if (isProcessingQueue) return;
@@ -185,10 +185,16 @@ async function processQueue() {
                 if (error.code === 'ECONNRESET') {
                     console.error('Connexion interrompue par le serveur.');
                     clearInterval(typingInterval);
-                    messageQueue.unshift(message);
-                    isProcessingQueue = false;
-                    processQueue();
-                    return;
+                    message.retryCount = (message.retryCount || 0) + 1;
+                    if (message.retryCount < 3) {
+                        messageQueue.unshift(message);
+                        isProcessingQueue = false;
+                        processQueue();
+                        return;
+                    } else {
+                        await message.reply('Impossible de se connecter au serveur après plusieurs tentatives.');
+                        break;
+                    }
                 }
                 console.error('Erreur lors de la requête à l\'API DeepSeek:', error);
                 break;
