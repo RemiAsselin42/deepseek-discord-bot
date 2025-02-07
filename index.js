@@ -185,8 +185,10 @@ async function processQueue() {
                 if (error.code === 'ECONNRESET') {
                     console.error('Connexion interrompue par le serveur.');
                     clearInterval(typingInterval);
-                    await message.reply('Impossible de se connecter à DeepSeek, réessaie plus tard.');
-                    break;
+                    messageQueue.unshift(message);
+                    isProcessingQueue = false;
+                    processQueue();
+                    return;
                 }
                 console.error('Erreur lors de la requête à l\'API DeepSeek:', error);
                 break;
@@ -220,9 +222,8 @@ client.on('messageUpdate', (oldMessage, newMessage) => {
         clearInterval(typingInterval);
         // ...arrêter proprement la requête en cours...
         isProcessingQueue = false;
-        // On refile le message à mettre à jour
         messageQueue.unshift(newMessage);
-        processQueue();
+        processQueue(); // Relance la requête
     }
 });
 
