@@ -109,6 +109,8 @@ let currentMessageId = null;
 let typingInterval = null;
 let currentController = null;
 
+const TARGET_CHANNEL_ID = '1336679504273211504'; // Remplacez par l’ID de votre salon
+
 async function processQueue() {
     if (isProcessingQueue) return;
     isProcessingQueue = true;
@@ -198,12 +200,14 @@ async function processQueue() {
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
+    if (message.channel.id !== TARGET_CHANNEL_ID) return;
     console.log(`Message reçu de ${message.author.username}: ${message.content}`);
     messageQueue.push(message);
     await processQueue();
 });
 
 client.on('messageUpdate', (oldMessage, newMessage) => {
+    if (oldMessage.channel.id !== TARGET_CHANNEL_ID) return;
     // Si le message est déjà dans la file, on le met à jour pour la prochaine requête
     const queueIndex = messageQueue.findIndex(msg => msg.id === oldMessage.id);
     if (queueIndex !== -1) {
@@ -223,6 +227,7 @@ client.on('messageUpdate', (oldMessage, newMessage) => {
 });
 
 client.on('messageDelete', (deletedMessage) => {
+    if (deletedMessage.channel.id !== TARGET_CHANNEL_ID) return;
     // Si le message est dans la file, on le retire
     const queueIndex = messageQueue.findIndex(msg => msg.id === deletedMessage.id);
     if (queueIndex !== -1) {
