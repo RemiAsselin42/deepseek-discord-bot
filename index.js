@@ -135,7 +135,6 @@ async function processQueue() {
         saveMessageHistory();
 
         if (message.mentions.has(client.user)) {
-            message.channel.sendTyping();
             currentController = new AbortController();
             typingInterval = setInterval(() => {
                 message.channel.sendTyping();
