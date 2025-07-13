@@ -4,6 +4,7 @@ module.exports = {
             name: 'discord-bot',
             script: 'index.js',
             watch: true,
+            ignore_watch: ['messageHistory.json'], // ignore ce fichier
             env: {
                 NODE_ENV: 'development',
                 DISCORD_TOKEN: process.env.DISCORD_TOKEN,

@@ -55,6 +55,24 @@ if (fs.existsSync(MESSAGE_HISTORY_FILE)) {
     }
 }
 
+const ALLOWED_CHANNELS_FILE = path.join(__dirname, 'allowedChannels.json');
+
+let allowedChannels = [];
+if (fs.existsSync(ALLOWED_CHANNELS_FILE)) {
+    try {
+        const data = fs.readFileSync(ALLOWED_CHANNELS_FILE, 'utf-8');
+        allowedChannels = JSON.parse(data);
+    } catch (error) {
+        console.error('Erreur lors du chargement des salons autorisés:', error);
+        allowedChannels = [];
+    }
+}
+
+function saveAllowedChannels() {
+    fs.writeFileSync(ALLOWED_CHANNELS_FILE, JSON.stringify(allowedChannels, null, 2));
+}
+
+
 // Fonction pour sauvegarder l'historique des messages dans le fichier JSON
 function saveMessageHistory() {
     fs.writeFileSync(MESSAGE_HISTORY_FILE, JSON.stringify(messageHistory, null, 2));
@@ -69,6 +87,10 @@ client.once('ready', () => {
         {
             name: 'reset-history',
             description: "Supprime l'historique des messages du salon actuel",
+        },
+        {
+            name: 'add-channel',
+            description: "Autorise ce salon à utiliser le bot",
         },
     ];
 
@@ -90,6 +112,18 @@ client.once('ready', () => {
 
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isCommand()) return;
+
+    if (interaction.commandName === 'add-channel') {
+        await interaction.deferReply({ ephemeral: true });
+
+        if (!allowedChannels.includes(interaction.channelId)) {
+            allowedChannels.push(interaction.channelId);
+            saveAllowedChannels();
+            await interaction.editReply('✅ Je peux maintenant répondre dans ce salon !');
+        } else {
+            await interaction.editReply('Ce salon est déjà autorisé ;)');
+        }
+    }
 
     if (interaction.commandName === 'reset-history') {
         console.log('Commande /reset-history reçue');
@@ -207,7 +241,7 @@ async function processQueue() {
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
-    if (message.channel.id !== TARGET_CHANNEL_ID) return;
+    if (!allowedChannels.includes(message.channel.id)) return;
     console.log(`Message reçu de ${message.author.username}: ${message.content}`);
     messageQueue.push(message);
     await processQueue();
